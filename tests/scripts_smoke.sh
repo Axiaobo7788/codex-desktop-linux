@@ -622,8 +622,10 @@ SCRIPT
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/lib/linux-target-context.js"
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/descriptor.js"
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/engine.js"
+    assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/integrity-error.js"
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/runner.js"
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/lib/assets.js"
+    assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/lib/composition-delegation.js"
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/lib/minified-js.js"
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/lib/settings-keys.js"
     assert_file_exists "$pkg_root/opt/codex-desktop/update-builder/scripts/patches/impl/webview/index.js"
@@ -8838,7 +8840,7 @@ test_linux_titlebar_context_menu_patch_smoke() {
     local bundle_body
 
     mkdir -p "$workspace"
-    bundle_body='const electron=require(`electron`);class WindowManager{registerWindow(){}async createWindow(e={}){let{appearance:o=`primary`}=e,N=new electron.BrowserWindow({});(process.platform===`win32`||process.platform===`linux`)&&N.removeMenu(),this.registerWindow(N,0,!0,o,`register`);host.on(`did-create-window`,()=>{let e=new electron.BrowserWindow({});process.platform===`win32`&&e.removeMenu(),e.show()});return N}}'
+    bundle_body='const electron=require(`electron`);class WindowManager{registerWindow(){}async createWindow(e={}){let t=process.platform===`win32`&&(e.appearance??`primary`)===`primary`?electron.screen.getPrimaryDisplay().workArea:null,{appearance:o=`primary`}=e,N=new electron.BrowserWindow({});(process.platform===`win32`||process.platform===`linux`)&&N.removeMenu(),this.registerWindow(N,0,!0,o,`register`);host.on(`did-create-window`,()=>{let e=new electron.BrowserWindow({});process.platform===`win32`&&e.removeMenu(),e.show()});return N}}'
     make_fake_extracted_asar "$extracted" "$bundle_body"
 
     node "$REPO_DIR/scripts/patch-linux-window-ui.js" \
@@ -9324,19 +9326,18 @@ test_browser_annotation_screenshot_patch_smoke() {
     mkdir -p "$workspace"
     make_fake_extracted_asar "$extracted" 'let D={removeMenu(){},setMenuBarVisibility(){},setIcon(){},once(){}};let n=require(`electron`),t=require(`node:path`),a=require(`node:fs`);...process.platform===`win32`?{autoHideMenuBar:!0}:{},process.platform===`win32`&&D.removeMenu(),foo)}),D.once(`ready-to-show`,()=>{})'
     cat > "$extracted/.vite/build/comment-preload.js" <<'JS'
-let mt=Te;M?.kind===`comment`?mt=pt?[M.annotation]:Te:pt||P?mt=[]:ft!=null&&(mt=Te.filter(e=>e.id!==ft.id));
-let ht=mt.flatMap(e=>[e]),kt=null,At=`hover-box`,jt,Mt=0,I=[];
-if(P&&M?.annotation.anchor.kind===`element`){Mt=xt[0]??0;let e=bt==null?null:hs(bt),t=e?.rect??Ss(M.annotation.anchor);jt=e?.borderRadius,At=Vs(M.annotation.anchor,t,C.width,C.height),kt=Is(M.annotation.anchor,t,bt),I=bc(F,C,{clipToVisibleArea:!0})}
+let Nt=Mt==null?[]:Pl(Mt),Pt=F==null?Nt:[],Ft=null,It=`hover-box`,Lt,Rt=[];
+if(pt&&N?.annotation.anchor.kind===`element`){let e=Dt==null?null:as(Dt),t=e?.rect??fs(N.annotation.anchor);Lt=e?.borderRadius,It=js(N.annotation.anchor,t,w.width,w.height),Ft=Es(N.annotation.anchor,t,Dt),Rt=uc(Ot,w,{clipToVisibleArea:!0,selectionIndexOffset:1,viewportSize:N.annotation.viewportSize})}
 JS
 
     node "$REPO_DIR/scripts/patch-linux-window-ui.js" "$extracted" >"$output_log" 2>&1
-    assert_contains "$extracted/.vite/build/comment-preload.js" 'let t=Ss(M.annotation.anchor);jt=void 0,At=Vs'
-    assert_contains "$extracted/.vite/build/comment-preload.js" 'M?\.kind===`comment`?mt=pt?\[M\.annotation\]:Te'
-    assert_not_contains "$extracted/.vite/build/comment-preload.js" 'e?.rect??Ss'
+    assert_contains "$extracted/.vite/build/comment-preload.js" 'let t=fs(N.annotation.anchor);Lt=void 0,It=js'
+    assert_contains "$extracted/.vite/build/comment-preload.js" 'selectionIndexOffset:1'
+    assert_not_contains "$extracted/.vite/build/comment-preload.js" 'e?.rect??fs'
 
     node "$REPO_DIR/scripts/patch-linux-window-ui.js" "$extracted" >"$output_log" 2>&1
-    assert_occurrence_count "$extracted/.vite/build/comment-preload.js" 'let t=Ss(M.annotation.anchor)' '1'
-    assert_occurrence_count "$extracted/.vite/build/comment-preload.js" 'M?\.kind===`comment`?mt=pt?\[M\.annotation\]:Te' '1'
+    assert_occurrence_count "$extracted/.vite/build/comment-preload.js" 'let t=fs(N.annotation.anchor)' '1'
+    assert_occurrence_count "$extracted/.vite/build/comment-preload.js" 'selectionIndexOffset:1' '1'
 }
 
 test_linux_single_instance_patch_smoke() {
