@@ -262,7 +262,7 @@ fn capability_map(
     capability_map_with_portal_keyboard(
         platform,
         portals,
-        &portals.remote_desktop,
+        &portals.remote_desktop_keyboard,
         accessibility,
         windowing,
         input,
@@ -808,7 +808,7 @@ fn readiness_report(
 ) -> ReadinessReport {
     readiness_report_with_portal_keyboard(
         platform,
-        &portals.remote_desktop,
+        &portals.remote_desktop_keyboard,
         accessibility,
         windowing,
         input,
@@ -1803,21 +1803,8 @@ mod tests {
         let portals = portal_report_with_keyboard(pointer, keyboard.clone());
         let accessibility = accessibility_report(Check::ok("bus"), Check::ok("true"));
         let windowing = windowing_report(true, true);
-        let capabilities = capability_map_with_portal_keyboard(
-            &platform,
-            &portals,
-            &keyboard,
-            &accessibility,
-            &windowing,
-            &input,
-        );
-        let readiness = readiness_report_with_portal_keyboard(
-            &platform,
-            &keyboard,
-            &accessibility,
-            &windowing,
-            &input,
-        );
+        let capabilities = capability_map(&platform, &portals, &accessibility, &windowing, &input);
+        let readiness = readiness_report(&platform, &portals, &accessibility, &windowing, &input);
 
         assert!(!capabilities.input.iter().any(|backend| backend == "portal"));
         assert!(!readiness.can_send_development_input);
@@ -1848,21 +1835,8 @@ mod tests {
             Check::fail("/dev/uinput: Permission denied"),
         );
 
-        let capabilities = capability_map_with_portal_keyboard(
-            &platform,
-            &portals,
-            &keyboard,
-            &accessibility,
-            &windowing,
-            &input,
-        );
-        let readiness = readiness_report_with_portal_keyboard(
-            &platform,
-            &keyboard,
-            &accessibility,
-            &windowing,
-            &input,
-        );
+        let capabilities = capability_map(&platform, &portals, &accessibility, &windowing, &input);
+        let readiness = readiness_report(&platform, &portals, &accessibility, &windowing, &input);
 
         assert!(!portals.remote_desktop.ok);
         assert!(portals.remote_desktop_keyboard.ok);
@@ -1962,21 +1936,8 @@ mod tests {
             Check::fail("/dev/uinput: Permission denied"),
         );
 
-        let capabilities = capability_map_with_portal_keyboard(
-            &platform,
-            &portals,
-            &keyboard,
-            &accessibility,
-            &windowing,
-            &input,
-        );
-        let readiness = readiness_report_with_portal_keyboard(
-            &platform,
-            &keyboard,
-            &accessibility_report(Check::ok("bus"), Check::ok("true")),
-            &windowing_report(true, true),
-            &input,
-        );
+        let capabilities = capability_map(&platform, &portals, &accessibility, &windowing, &input);
+        let readiness = readiness_report(&platform, &portals, &accessibility, &windowing, &input);
 
         assert!(portals.remote_desktop.ok);
         assert!(!portals.remote_desktop_keyboard.ok);
