@@ -40,6 +40,47 @@ test("official Linux validation runs fully on every pull request but not hourly"
   assert.match(packageMatrix, /\.\/scripts\/build-rpm\.sh/);
   assert.match(packageMatrix, /\.\/scripts\/build-pacman\.sh/);
   assert.match(packageMatrix, /\.\/scripts\/build-appimage\.sh/);
+
+  const dockFeatureAlone = job(workflow, "dock-icon-feature-alone");
+  assert.match(
+    dockFeatureAlone,
+    /ref: \$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/,
+  );
+  assert.match(dockFeatureAlone, /"enabled": \["ui-tweaks"\]/);
+  assert.match(dockFeatureAlone, /"dockIcon": \{ "enabled": true \}/);
+  assert.match(
+    dockFeatureAlone,
+    /--require-applied feature:ui-tweaks:appearance-dock-icon-main-process/,
+  );
+  assert.match(
+    dockFeatureAlone,
+    /--require-applied feature:ui-tweaks:appearance-dock-icon-settings-row/,
+  );
+  assert.match(dockFeatureAlone, /Expected Dock descriptors 2\/2 applied/);
+  assert.match(dockFeatureAlone, /scripts\/lib\/upstream-linux-package\.js/);
+  assert.match(
+    dockFeatureAlone,
+    /--key-base64 assets\/openai-codex-linux-repository-key\.gpg\.base64/,
+  );
+  assert.match(dockFeatureAlone, /\.\/install\.sh "\$package"/);
+  assert.match(
+    dockFeatureAlone,
+    /find "\$payload" -mindepth 1 -maxdepth 1 -printf '%f\\n'/,
+  );
+  assert.doesNotMatch(dockFeatureAlone, /find "\$payload"[^\n]+-type f/);
+  assert.match(dockFeatureAlone, /test ! -L "\$payload\/\$resource"/);
+  for (const sourceComparison of [
+    /cmp "\$upstream_root\/usr\/lib\/chatgpt\/resources\/icon-chatgpt\.png" "\$payload\/icon-chatgpt\.png"/,
+    /cmp assets\/codex-linux\.png "\$payload\/icon-codex-dark-color\.png"/,
+    /cmp assets\/codex-linux\.png "\$payload\/icon-codex-light\.png"/,
+    /cmp linux-features\/ui-tweaks\/sync-desktop-icon\.sh "\$payload\/sync-desktop-icon\.sh"/,
+    /cmp linux-features\/ui-tweaks\/sync-desktop-icon\.sh "\$hook"/,
+  ]) {
+    assert.match(dockFeatureAlone, sourceComparison);
+  }
+  assert.match(dockFeatureAlone, /test -x "\$payload\/sync-desktop-icon\.sh"/);
+  assert.match(dockFeatureAlone, /ui-tweaks-dock-icon-cleanup\.sh/);
+  assert.match(dockFeatureAlone, /test -x "\$hook"/);
 });
 
 test("official Linux metadata expires after seven days", () => {
@@ -54,12 +95,13 @@ test("official Linux gate fails closed unless every dependency succeeds", () => 
   const gate = job(workflow, "official-linux-gate");
   assert.match(
     gate,
-    /^  official-linux-gate:\n    if: \$\{\{ always\(\) \}\}\n    needs:\n      - signed-baseline\n      - package-matrix\n      - watchdog\n    runs-on:/,
+    /^  official-linux-gate:\n    if: \$\{\{ always\(\) \}\}\n    needs:\n      - signed-baseline\n      - package-matrix\n      - dock-icon-feature-alone\n      - watchdog\n    runs-on:/,
   );
 
   for (const [dependency, resultVariable] of [
     ["signed-baseline", "SIGNED_BASELINE_RESULT"],
     ["package-matrix", "PACKAGE_MATRIX_RESULT"],
+    ["dock-icon-feature-alone", "DOCK_ICON_FEATURE_ALONE_RESULT"],
     ["watchdog", "WATCHDOG_RESULT"],
   ]) {
     assert.match(
