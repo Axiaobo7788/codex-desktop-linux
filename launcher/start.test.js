@@ -105,6 +105,7 @@ test("launcher loads global and app-specific Electron flags", (t) => {
 
   assert.equal(result.status, 7);
   assert.deepEqual(fs.readFileSync(path.join(root, "arguments"), "utf8").trim().split("\n"), [
+    "--class=codex-desktop",
     "--ozone-platform=wayland",
     "--enable-features=WaylandWindowDecorations",
     "--ozone-platform=x11",
@@ -113,6 +114,7 @@ test("launcher loads global and app-specific Electron flags", (t) => {
   assert.deepEqual(
     fs.readFileSync(path.join(root, "launcher-hook-arguments"), "utf8").trim().split("\n"),
     [
+      "--class=codex-desktop",
       "--ozone-platform=wayland",
       "--enable-features=WaylandWindowDecorations",
       "--ozone-platform=x11",
@@ -146,7 +148,10 @@ test("launcher uses the HOME config fallback and ignores non-file flag paths", (
 
   assert.equal(result.status, 7);
   assert.equal(result.stderr, "");
-  assert.equal(fs.readFileSync(path.join(root, "arguments"), "utf8"), "--ozone-platform=wayland\n");
+  assert.equal(
+    fs.readFileSync(path.join(root, "arguments"), "utf8"),
+    "--class=codex-desktop\n--ozone-platform=wayland\n",
+  );
 });
 
 test("diagnose validates the official runtime without starting it", (t) => {
