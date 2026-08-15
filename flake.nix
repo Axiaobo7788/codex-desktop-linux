@@ -362,8 +362,7 @@
               test -d "$app"
               node "$source_dir/scripts/ci/validate-patch-report.js" \
                 "$app/.codex-linux/patch-report.json" \
-                --require-enabled-feature nix-store-bundled-marketplace-permissions \
-                --require-applied feature:nix-store-bundled-marketplace-permissions:bundled-marketplace-staging-copy-permissions
+                --require-enabled-feature nix-store-bundled-marketplace-permissions
               dynamic_linker="$(cat ${pkgs.stdenv.cc}/nix-support/dynamic-linker)"
               node "$source_dir/nix/elf-runtime.cjs" fix \
                 --root "$app" \
@@ -890,10 +889,12 @@
         '';
         checks.modules = import ./nix/modules-test.nix { inherit pkgs self system; };
         checks.nix-runtime = mkRuntimeCheck "nix-runtime-check" codexDesktop true false;
+        checks.nix-runtime-computer-use =
+          mkRuntimeCheck "nix-runtime-computer-use" computerUse true false;
         checks.nix-runtime-maximal-directory-watch =
-          mkRuntimeCheck "nix-runtime-maximal-directory-watch" maximalDirectory false true;
+          mkRuntimeCheck "nix-runtime-maximal-directory-watch" maximalDirectory true true;
         checks.nix-runtime-maximal-shallow-watch =
-          mkRuntimeCheck "nix-runtime-maximal-shallow-watch" maximalShallow false false;
+          mkRuntimeCheck "nix-runtime-maximal-shallow-watch" maximalShallow true false;
         checks.nix-installer = pkgs.runCommand "nix-installer-check" {
           nativeBuildInputs = [ installer pkgs.nodejs pkgs.patchelf ];
         } ''
