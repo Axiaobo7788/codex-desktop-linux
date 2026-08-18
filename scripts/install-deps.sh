@@ -70,17 +70,31 @@ install_zypper() {
 }
 
 install_pacman() {
+    local rust_packages=()
+
+    # Respect an existing working Rust toolchain. Arch's rust and rustup
+    # packages conflict, so only install rustup when neither a working Cargo
+    # nor rustup is already available.
+    if ! cargo --version >/dev/null 2>&1 && \
+       ! command -v rustup >/dev/null 2>&1; then
+        rust_packages=(rustup)
+    fi
+
     run_privileged pacman -Syu --noconfirm --needed base-devel ca-certificates \
-        curl dpkg git gnupg nodejs npm python rustup tar unzip util-linux xz zstd
+        curl dpkg git gnupg nodejs npm python "${rust_packages[@]}" \
+        tar unzip util-linux xz zstd
 }
 
 install_rust() {
-    command -v cargo >/dev/null 2>&1 && return 0
+    # A distro-provided Rust toolchain is sufficient.
+    cargo --version >/dev/null 2>&1 && return 0
+
     command -v rustup >/dev/null 2>&1 || {
         info 'Rust is only required for the updater and retained native feature helpers.'
-        info 'Install rustup for your distribution, then rerun this script.'
+        info 'Install Rust or rustup for your distribution, then rerun this script.'
         return 0
     }
+
     rustup toolchain install stable --profile minimal
     rustup default stable
 }
