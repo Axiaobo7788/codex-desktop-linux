@@ -23,9 +23,14 @@ assert_fails() {
     ! "$@" >/dev/null 2>&1 || fail "expected command to fail: $*"
 }
 
+pacman_package_installed() {
+    local package="$1"
+    [ "$(pacman -Qq "$package" 2>/dev/null || true)" = "$package" ]
+}
+
 assert_no_pacman_rust_conflict() {
-    if pacman -Q rust >/dev/null 2>&1 &&
-       pacman -Q rustup >/dev/null 2>&1; then
+    if pacman_package_installed rust &&
+       pacman_package_installed rustup; then
         fail 'pacman rust and rustup packages must not be installed together'
     fi
 }
@@ -34,7 +39,7 @@ reset_rust_state() {
     local -a installed=()
     local package
     for package in rust rustup; do
-        if pacman -Q "$package" >/dev/null 2>&1; then
+        if pacman_package_installed "$package"; then
             installed+=("$package")
         fi
     done
@@ -66,8 +71,8 @@ case_working_distro_cargo() {
     assert_succeeds with_build_path cargo --version
     run_install_deps
     verify_build_rust
-    pacman -Q rust >/dev/null 2>&1 || fail 'expected pacman rust to remain installed'
-    ! pacman -Q rustup >/dev/null 2>&1 || fail 'did not expect pacman rustup with distro rust'
+    pacman_package_installed rust || fail 'expected pacman rust to remain installed'
+    ! pacman_package_installed rustup || fail 'did not expect pacman rustup with distro rust'
 }
 
 case_rustup_without_toolchain() {
@@ -77,8 +82,8 @@ case_rustup_without_toolchain() {
     assert_succeeds with_build_path rustup --version
     run_install_deps
     verify_build_rust
-    pacman -Q rustup >/dev/null 2>&1 || fail 'expected pacman rustup to remain installed'
-    ! pacman -Q rust >/dev/null 2>&1 || fail 'did not expect pacman rust with rustup'
+    pacman_package_installed rustup || fail 'expected pacman rustup to remain installed'
+    ! pacman_package_installed rust || fail 'did not expect pacman rust with rustup'
 }
 
 case_neither_rust_nor_rustup() {
@@ -87,8 +92,8 @@ case_neither_rust_nor_rustup() {
     assert_fails with_build_path rustup --version
     run_install_deps
     verify_build_rust
-    pacman -Q rustup >/dev/null 2>&1 || fail 'expected install-deps to install pacman rustup'
-    ! pacman -Q rust >/dev/null 2>&1 || fail 'did not expect pacman rust with rustup'
+    pacman_package_installed rustup || fail 'expected install-deps to install pacman rustup'
+    ! pacman_package_installed rust || fail 'did not expect pacman rust with rustup'
 }
 
 case_shadowed_user_local_proxy() {
@@ -112,8 +117,8 @@ case_shadowed_user_local_proxy() {
     verify_build_rust
     [ "$(with_build_path command -v cargo)" = "$HOME/.cargo/bin/cargo" ] ||
         fail 'expected native build path to keep resolving user-local cargo after setup'
-    pacman -Q rust >/dev/null 2>&1 || fail 'expected pacman rust to remain installed'
-    ! pacman -Q rustup >/dev/null 2>&1 || fail 'did not expect pacman rustup with distro rust'
+    pacman_package_installed rust || fail 'expected pacman rust to remain installed'
+    ! pacman_package_installed rustup || fail 'did not expect pacman rustup with distro rust'
 }
 
 require_arch_container() {
