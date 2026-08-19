@@ -96,16 +96,24 @@ case_neither_rust_nor_rustup() {
     ! pacman_package_installed rust || fail 'did not expect pacman rust with rustup'
 }
 
-case_shadowed_user_local_proxy() {
-    local installer
+install_user_local_rustup_proxy_from_pacman() {
+    local rustup_cmd
 
+    pacman -S --noconfirm --needed rustup
+    pacman_package_installed rustup || fail 'expected pacman rustup package to be installed'
+    rustup_cmd="$(command -v rustup)"
+    install -d -m 0755 "$HOME/.cargo/bin"
+    install -m 0755 "$rustup_cmd" "$HOME/.cargo/bin/rustup"
+    ln -s rustup "$HOME/.cargo/bin/cargo"
+    ln -s rustup "$HOME/.cargo/bin/rustc"
+    pacman -Rns --noconfirm rustup
+    hash -r
+}
+
+case_shadowed_user_local_proxy() {
     reset_rust_state
+    install_user_local_rustup_proxy_from_pacman
     pacman -S --noconfirm --needed rust
-    installer="$(mktemp)"
-    curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs -o "$installer"
-    RUSTUP_INIT_SKIP_PATH_CHECK=yes \
-        sh "$installer" -y --profile minimal --default-toolchain none --no-modify-path
-    rm -f -- "$installer"
     hash -r
 
     assert_succeeds /usr/bin/cargo --version
